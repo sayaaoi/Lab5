@@ -1,3 +1,6 @@
+import java.awt.Color;
+import java.awt.Graphics2D;
+import java.awt.image.BufferedImage;
 import java.io.File;
 import java.io.IOException;
 import java.net.URI;
@@ -6,6 +9,8 @@ import java.security.InvalidParameterException;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Scanner;
+
+import javax.imageio.ImageIO;
 
 /**
  * Decode Morse code from a WAV file.
@@ -182,6 +187,56 @@ public class MorseDecoder {
         return dotDash + "\n" + outputString;
     }
 
+    /**************************************************************************
+     * Start of WAV to Image code
+     *************************************************************************/
+
+    /** How much the image should be scaled. Useful to keep images small for large WavFiles. */
+    private static final int IMAGE_SCALE = 1;
+
+    /** How high the image should be. */
+    private static final int IMAGE_HEIGHT = 100;
+
+    /** Half the height of the image. Used to convert doubles into y coordinates. */
+    private static final int HALF_HEIGHT = IMAGE_HEIGHT / 2;
+
+    /**
+     * Convert a WAV file to an image representing the waveform.
+     *
+     * @param inputFile the input file to process
+     * @throws WavFileException thrown if there is a WavFile-specific IO error
+     * @throws IOException thrown on other IO errors
+     */
+    public static void wavFileToImage(final WavFile inputFile)
+            throws IOException, WavFileException {
+        // Read the WavFile to a double[]
+        int frameCount = (int) inputFile.getNumFrames();
+        double[] sampleBuffer = new double[frameCount];
+        inputFile.readFrames(sampleBuffer, frameCount);
+
+        // Set up the points to draw
+        int nPoints = frameCount / IMAGE_SCALE;
+        int[] xPoints = new int[nPoints];
+        int[] yPoints = new int[nPoints];
+
+        for (int index = 0; index < nPoints; index++) {
+            xPoints[index] = index;
+            // Convert double to int, being sure to keep them in the valid image range
+            yPoints[index] = (int) (sampleBuffer[IMAGE_SCALE * index] * HALF_HEIGHT) + HALF_HEIGHT;
+        }
+
+        // Make the image, then draw into it
+        BufferedImage bi = new BufferedImage(nPoints, IMAGE_HEIGHT,
+                BufferedImage.TYPE_INT_ARGB);
+
+        Graphics2D ig2 = bi.createGraphics();
+        ig2.setPaint(Color.GREEN);
+        ig2.drawPolyline(xPoints, yPoints, nPoints);
+
+        // Save the image as a file
+        ImageIO.write(bi, "PNG", new File("myWave.PNG"));
+    }
+
     /**
      * Main method for testing.
      * <p>
@@ -238,7 +293,8 @@ public class MorseDecoder {
                 if (inputWavFile.getNumChannels() != 1) {
                     throw new InvalidParameterException("We only process files with one channel.");
                 }
-                System.out.println(morseWavToString(inputWavFile));
+                // System.out.println(morseWavToString(inputWavFile));
+                wavFileToImage(inputWavFile);
                 break;
             } catch (WavFileException | IOException | URISyntaxException e) {
                 throw new InvalidParameterException("Bad file path" + e);
