@@ -6,6 +6,7 @@ import java.io.IOException;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.security.InvalidParameterException;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Scanner;
@@ -55,11 +56,16 @@ public class MorseDecoder {
          */
         int totalBinCount = (int) Math.ceil(inputFile.getNumFrames() / BIN_SIZE);
         double[] returnBuffer = new double[totalBinCount];
-
         double[] sampleBuffer = new double[BIN_SIZE * inputFile.getNumChannels()];
         for (int binIndex = 0; binIndex < totalBinCount; binIndex++) {
             // Get the right number of samples from the inputFile
             // Sum all the samples together and store them in the returnBuffer
+            int newBuffer = inputFile.readFrames(sampleBuffer, BIN_SIZE);  //number of Frames
+            if (newBuffer >= BIN_SIZE) {
+                for (int i = 0; i < BIN_SIZE; i++) {
+                    returnBuffer[binIndex] += Math.abs(sampleBuffer[i]);
+                }
+            }
         }
         return returnBuffer;
     }
@@ -86,13 +92,30 @@ public class MorseDecoder {
          * There are four conditions to handle. Symbols should only be output when you see
          * transitions. You will also have to store how much power or silence you have seen.
          */
-
+        String morseCode = "";
+        for (int i = 0; i < powerMeasurements.length; i++) {
+            int spaceLocation = 0;
+            if (powerMeasurements[i] < POWER_THRESHOLD) {
+                if ((i - spaceLocation) - 1 < DASH_BIN_COUNT && (i - spaceLocation - 1) > 0) {
+                    spaceLocation = i;
+                    morseCode += String.join("", Collections.nCopies(i - spaceLocation - 1, "-"));
+                } else {
+                    morseCode += " ";
+                    spaceLocation = i;
+                }
+            } else {
+                if ((i - spaceLocation) == DASH_BIN_COUNT) {
+                    morseCode += String.join("", Collections.nCopies(DASH_BIN_COUNT, "-"));
+                    spaceLocation = i;
+                }
+            }
+        }
         // if ispower and waspower
         // else if ispower and not waspower
         // else if issilence and wassilence
         // else if issilence and not wassilence
 
-        return "";
+        return morseCode;
     }
 
     /**
