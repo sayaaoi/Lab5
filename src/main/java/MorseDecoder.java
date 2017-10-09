@@ -94,13 +94,15 @@ public class MorseDecoder {
 
         String morseCode = "";
         int length = 0;
+        boolean tone = false;
         for (int i = 0; i < powerMeasurements.length; i++) {
-            boolean tone = false;
             if (powerMeasurements[i] > POWER_THRESHOLD) {
                 if (tone) {
                     length++;
                 } else {
-                    morseCode += " ";
+                    if (length >= DASH_BIN_COUNT) {
+                        morseCode += " ";
+                    }
                     length = 1;
                     tone = true;
                 }
@@ -123,8 +125,9 @@ public class MorseDecoder {
         // else if ispower and not waspower
         // else if issilence and wassilence
         // else if issilence and not wassilence
-
+        //System.out.printf("Morse code is %s\n", morseCode);
         return morseCode;
+
     }
 
     /**
@@ -325,7 +328,7 @@ public class MorseDecoder {
                 if (inputWavFile.getNumChannels() != 1) {
                     throw new InvalidParameterException("We only process files with one channel.");
                 }
-                // System.out.println(morseWavToString(inputWavFile));
+                 System.out.println(morseWavToString(inputWavFile));
                 wavFileToImage(inputWavFile);
                 break;
             } catch (WavFileException | IOException | URISyntaxException e) {
